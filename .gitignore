@@ -36,5 +36,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Ignore my golden-image
-prod/ubuntu-base.qcow2
+*/.terraform.lock.hcl
+.DS_Store
