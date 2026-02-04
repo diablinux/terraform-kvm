@@ -18,7 +18,7 @@ variable "vcpu" {
 variable "base_image_path" {
   description = "Path to the backing_store qcow2 image"
   type        = string
-  default = "/Users/diablinux/source_code/k8s_clusters/prod/ubuntu-base.qcow2"
+  default = "/Users/diablinux/libvirt/images/ubuntu-base.qcow2"
 }
 
 variable "network_name" {
