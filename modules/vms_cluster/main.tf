@@ -1,27 +1,41 @@
+locals {
+  # Determine OS for each VM: use explicit mapping if provided, otherwise use default
+  vm_os = {
+    for vm_name in var.vm_names :
+    vm_name => lookup(var.vm_os_mapping, vm_name, var.default_os)
+  }
+
+  # Get the image path for each VM based on its OS
+  vm_image_paths = {
+    for vm_name, os_type in local.vm_os :
+    vm_name => lookup(var.os_images, os_type, var.os_images[var.default_os])
+  }
+}
+
 resource "libvirt_volume" "vm_disk" {
-  for_each       = toset(var.vm_names)
-  name           = "${each.key}-disk.qcow2"
-  pool           = "default"
-  
-  target         = { format = { type = "qcow2" } }
-  capacity       = var.disk_size
+  for_each = toset(var.vm_names)
+  name     = "${each.key}-disk.qcow2"
+  pool     = "default"
+
+  target   = { format = { type = "qcow2" } }
+  capacity = var.disk_size
 
   create = {
     content = {
-      url = "${var.base_image_path}"
+      url = local.vm_image_paths[each.key]
     }
   }
 }
 
 
 resource "libvirt_domain" "machine" {
-  type = "kvm"
-  for_each = toset(var.vm_names)
-  name   = each.key
-  memory = var.memory_mb
+  type        = "kvm"
+  for_each    = toset(var.vm_names)
+  name        = each.key
+  memory      = var.memory_mb
   memory_unit = "MiB"
-  vcpu   = var.vcpu
-  
+  vcpu        = var.vcpu
+
   running   = true
   autostart = true
 
@@ -34,9 +48,14 @@ resource "libvirt_domain" "machine" {
   features = {
     acpi = true
   }
-  
+
+  cpu = {
+    mode       = "host-passthrough"
+    check      = "none"
+  }
+
   devices = {
-    disks = [ {
+    disks = [{
       driver = {
         type = "qcow2"
       }
@@ -47,13 +66,13 @@ resource "libvirt_domain" "machine" {
       }
       driver = { type = "qcow2" }
       target = { dev = "vda", bus = "virtio" }
-    } ]
+    }]
 
-    consoles = [ {
+    consoles = [{
       type = "pty"
-    } ]
-    
-    interfaces = [ 
+    }]
+
+    interfaces = [
       {
         model = {
           type = "virtio"
@@ -63,6 +82,8 @@ resource "libvirt_domain" "machine" {
             bridge = "nm-bridge"
           }
         }
-      } ]
-    }
+    }]
   }
+}
+
+
