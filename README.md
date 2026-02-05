@@ -236,6 +236,16 @@ virsh net-start nm-bridge
 - Check `os_images` paths point to valid files
 - Ensure `default_os` value is one of: `centos`, `rhel`, or `ubuntu`
 
+
+### Resize / partition on ubuntu VM's
+
+```bash
+sudo parted -l
+sudo growpart /dev/vda 1
+sudo resize2fs /dev/vda1
+df -h
+```
+
 ## License
 
 [Specify your license here]
