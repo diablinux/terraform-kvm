@@ -3,6 +3,28 @@ variable "vm_names" {
   type        = list(string)
 }
 
+variable "vm_os_mapping" {
+  description = "Map of VM names to their OS types (centos, rhel, ubuntu)"
+  type        = map(string)
+  default     = {}
+}
+
+variable "os_images" {
+  description = "Mapping of OS types to their golden image paths"
+  type        = map(string)
+  default = {
+    "centos" = "/Users/diablinux/libvirt/images/centos-10.qcow2"
+    "rhel"   = "/Users/diablinux/libvirt/images/rhel10.1-base.qcow2"
+    "ubuntu" = "/Users/diablinux/libvirt/images/ubuntu-base.qcow2"
+  }
+}
+
+variable "default_os" {
+  description = "Default OS type if not specified for a VM (centos, rhel, ubuntu)"
+  type        = string
+  default     = "ubuntu"
+}
+
 variable "memory_mb" {
   description = "RAM in MB"
   type        = number
@@ -16,9 +38,9 @@ variable "vcpu" {
 }
 
 variable "base_image_path" {
-  description = "Path to the backing_store qcow2 image"
+  description = "Path to the backing_store qcow2 image (deprecated - use os_images instead)"
   type        = string
-  default = "/Users/diablinux/libvirt/images/ubuntu-base.qcow2"
+  default     = ""
 }
 
 variable "network_name" {
