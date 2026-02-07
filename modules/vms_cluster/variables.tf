@@ -1,12 +1,9 @@
-variable "vm_names" {
-  description = "List of VM names to create (e.g., vm01, vm02)"
-  type        = list(string)
-}
-
-variable "vm_os_mapping" {
-  description = "Map of VM names to their OS types (centos, rhel, ubuntu)"
-  type        = map(string)
-  default     = {}
+variable "vm_props" {
+  description = "Map of VM names to their properties (os and size)"
+  type = map(object({
+    os   = optional(string)
+    size = optional(string)
+  }))
 }
 
 variable "os_images" {
@@ -25,16 +22,36 @@ variable "default_os" {
   default     = "ubuntu"
 }
 
-variable "memory_mb" {
-  description = "RAM in MB"
-  type        = number
-  default     = 2048
+variable "vm_sizes" {
+  description = "Mapping of VM size names to their resource configurations (vCPU, memory, and disk)"
+  type = map(object({
+    vcpu    = number
+    memory_mb = number
+    disk_gb = number
+  }))
+  default = {
+    "small" = {
+      vcpu      = 1
+      memory_mb = 1024
+      disk_gb   = 10
+    }
+    "medium" = {
+      vcpu      = 1
+      memory_mb = 2048
+      disk_gb   = 10
+    }
+    "large" = {
+      vcpu      = 2
+      memory_mb = 4096
+      disk_gb   = 20
+    }
+  }
 }
 
-variable "vcpu" {
-  description = "Number of vCPUs"
-  type        = number
-  default     = 2
+variable "default_vm_size" {
+  description = "Default VM size if not specified for a VM (small, medium, large)"
+  type        = string
+  default     = "medium"
 }
 
 variable "base_image_path" {
@@ -49,8 +66,8 @@ variable "network_name" {
   default     = "nm-bridge"
 }
 
-variable "disk_size" {
-  description = "Disk size in bytes (10GB = 10737418240)"
+variable "default_disk_size_gb" {
+  description = "Default disk size in GB if not specified in vm_size (deprecated - define in vm_sizes instead)"
   type        = number
-  default     = 10737418240
+  default     = 10
 }
