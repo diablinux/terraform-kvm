@@ -3,17 +3,13 @@ module "vms_cluster" {
 
   # Define VM names - customize as needed
   vm_names = [
-    "ubuntu-lab-001",
-    "centos-lab-001",
-    "rhel-lab-001",
+    "worker03"
   ]
 
   # Map each VM to its OS type (centos, rhel, ubuntu)
   # VMs not listed here will use the default_os value
   vm_os_mapping = {
-    "ubuntu-lab-001" = "ubuntu"
-    "centos-lab-001" = "centos"
-    "rhel-lab-001"   = "rhel"
+    "worker03" = "ubuntu"
   }
 
   # Override default OS paths if needed (optional)
@@ -27,9 +23,9 @@ module "vms_cluster" {
   default_os = "ubuntu"
 
   # Resource specifications for prod (higher resources)
-  memory_mb = 2048        # 2GB RAM per VM
-  vcpu      = 2           # 2 vCPUs per VM
-  disk_size = 10737418240 # 10GB disk per VM
+  memory_mb = 4096        # 4GB RAM per VM
+  vcpu      = 4           # 4 vCPUs per VM
+  disk_size = 10 * 1024 * 1024 * 1024 #10737418240 # 10GB disk per VM
 
   providers = {
     libvirt = libvirt
