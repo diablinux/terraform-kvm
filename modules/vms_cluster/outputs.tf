@@ -17,9 +17,9 @@ output "vm_disks" {
   }
 }
 
-output "vm_os_mapping" {
-  description = "OS type assigned to each VM"
-  value       = local.vm_os
+output "vm_map" {
+  description = "OS type and size assigned to each VM"
+  value       = var.vm_map
 }
 
 output "vm_image_paths" {

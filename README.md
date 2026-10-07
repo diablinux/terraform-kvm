@@ -5,15 +5,15 @@ Automating KVM VM Creation with Terraform - A flexible infrastructure-as-code so
 ## Features
 
 - **Multi-OS Support**: Provision VMs with CentOS, RHEL, or Ubuntu from golden images
-- **Flexible VM Configuration**: Define VM names and assign OS types per VM
+- **Flexible VM Configuration**: Define each VM's name, OS, and resource size
 - **Scalable Infrastructure**: Easily create multiple VMs with consistent or custom configurations
 - **Infrastructure as Code**: Define your entire VM cluster in Terraform configuration
 - **Modular Design**: Reusable module structure for different environments (dev, prod, etc.)
-- **Per-VM Customization**: Configure memory, vCPU, disk size, and OS independently for each VM
+- **Per-VM Customization**: Configure OS and choose a small, medium, or large resource profile for each VM
 
 ## Project Structure
 
-```
+```file
 terraform-kvm/
 ├── README.md                           # This file
 ├── modules/
@@ -34,8 +34,9 @@ terraform-kvm/
 The module handles the core VM provisioning logic:
 
 - **Local Values** (`locals`):
-  - `vm_os`: Maps each VM name to its OS type (from `vm_os_mapping` or uses `default_os`)
-  - `vm_image_paths`: Resolves the correct golden image path for each VM based on its OS
+  - `vm_image_paths`: Resolves the correct golden image path for each VM based on its `vm_os`
+  - `vm_size_profiles`: Resolves memory, vCPU, and disk capacity from the selected `vm_size`
+- **VM Definition**: Each `vm_map` key is a VM name and its value contains the VM's OS and size.
 
 - **Resources**:
   - `libvirt_volume`: Creates VM disk images based on golden image templates
@@ -46,7 +47,7 @@ The module handles the core VM provisioning logic:
 The solution uses three pre-built golden images located at `/Users/diablinux/libvirt/images/`:
 
 | OS | Image Path | Size |
-|----|-----------|------|
+| ---- | ----------- | ------ |
 | CentOS | `centos-10.qcow2` | Pre-configured |
 | RHEL | `rhel10.1-base.qcow2` | Pre-configured |
 | Ubuntu | `ubuntu-base.qcow2` | Pre-configured |
@@ -56,21 +57,21 @@ The solution uses three pre-built golden images located at `/Users/diablinux/lib
 Key variables allow customization:
 
 #### Required
-- `vm_names` (list): Names of VMs to create (e.g., `["web-01", "db-01"]`)
 
-#### Optional but Important
-- `vm_os_mapping` (map): Maps VM names to OS types
-  - Example: `{ "web-01" = "ubuntu", "db-01" = "centos" }`
-  - VMs without an entry use `default_os`
+- `vm_map` (map): Defines each VM name, OS, and size. Every VM must have an entry.
 
-- `default_os` (string): Default OS for unmapped VMs (default: `"ubuntu"`)
+#### VM Size Profiles
 
-#### VM Resources
-- `memory_mb` (number): RAM per VM in MB (default: `2048`)
-- `vcpu` (number): Virtual CPUs per VM (default: `2`)
-- `disk_size` (number): Disk size in bytes (default: `10737418240` = 10GB)
+Each VM's `vm_size` must be `small`, `medium`, or `large`. The initial profile values are:
+
+| Size | Memory | vCPU | Disk |
+| ---- | ------ | ---- | ---- |
+| `small` | 2 GiB | 2 | 10 GiB |
+| `medium` | 4 GiB | 4 | 20 GiB |
+| `large` | 8 GiB | 8 | 50 GiB |
 
 #### Advanced
+
 - `os_images` (map): Override golden image paths if needed
   - Keys: `"centos"`, `"rhel"`, `"ubuntu"`
   - Default points to `/Users/diablinux/libvirt/images/`
@@ -85,27 +86,21 @@ Edit `prod/main.tf` to define your VM cluster:
 module "vms_cluster" {
   source = "../modules/vms_cluster"
 
-  # Define VM names
-  vm_names = [
-    "ubuntu-lab-001",
-    "centos-lab-001",
-    "rhel-lab-001",
-  ]
-
-  # Map each VM to its OS type
-  vm_os_mapping = {
-    "ubuntu-lab-001" = "ubuntu"
-    "centos-lab-001" = "centos"
-    "rhel-lab-001"   = "rhel"
+  # Each key is a VM name; set its OS and size in the object.
+  vm_map = {
+    "ubuntu-lab-001" = {
+      vm_os   = "ubuntu"
+      vm_size = "small"
+    }
+    "centos-lab-001" = {
+      vm_os   = "centos"
+      vm_size = "medium"
+    }
+    "rhel-lab-001" = {
+      vm_os   = "rhel"
+      vm_size = "large"
+    }
   }
-
-  # Default OS for unmapped VMs
-  default_os = "ubuntu"
-
-  # Resource specifications
-  memory_mb = 2048        # 2GB RAM per VM
-  vcpu      = 2           # 2 vCPUs per VM
-  disk_size = 10737418240 # 10GB disk per VM
 }
 ```
 
@@ -137,9 +132,10 @@ terraform output
 ```
 
 Expected outputs:
+
 - `prod_vm_names`: List of created VM names
 - `prod_vm_ids`: Libvirt VM IDs
-- `prod_vm_os_mapping`: OS type for each VM
+- `prod_vm_map`: OS type and size for each VM
 - `prod_vm_image_paths`: Golden image path used by each VM
 
 ## Example Scenarios
@@ -147,22 +143,22 @@ Expected outputs:
 ### Create Homogeneous Cluster (all Ubuntu)
 
 ```hcl
-vm_names = ["app-01", "app-02", "app-03"]
-default_os = "ubuntu"
-# No vm_os_mapping needed - all use default
+vm_map = {
+  "app-01" = { vm_os = "ubuntu", vm_size = "small" }
+  "app-02" = { vm_os = "ubuntu", vm_size = "small" }
+  "app-03" = { vm_os = "ubuntu", vm_size = "small" }
+}
 ```
 
 ### Create Heterogeneous Cluster (mixed OS)
 
 ```hcl
-vm_names = ["web-01", "web-02", "db-01", "cache-01"]
-vm_os_mapping = {
-  "web-01"   = "ubuntu"
-  "web-02"   = "ubuntu"
-  "db-01"    = "centos"
-  "cache-01" = "rhel"
+vm_map = {
+  "web-01"   = { vm_os = "ubuntu", vm_size = "small" }
+  "web-02"   = { vm_os = "ubuntu", vm_size = "small" }
+  "db-01"    = { vm_os = "centos", vm_size = "medium" }
+  "cache-01" = { vm_os = "rhel", vm_size = "large" }
 }
-default_os = "ubuntu"
 ```
 
 ### Create VMs with Custom Resources
@@ -171,12 +167,10 @@ default_os = "ubuntu"
 module "vms_cluster" {
   source = "../modules/vms_cluster"
   
-  vm_names = ["compute-01", "compute-02"]
-  
-  # High-resource VMs
-  memory_mb = 8192        # 8GB RAM
-  vcpu      = 4           # 4 vCPUs
-  disk_size = 53687091200 # 50GB disk
+  vm_map = {
+    "compute-01" = { vm_os = "ubuntu", vm_size = "large" }
+    "compute-02" = { vm_os = "ubuntu", vm_size = "large" }
+  }
 }
 ```
 
@@ -187,7 +181,7 @@ The module provides the following outputs:
 - `vm_names`: List of created VM names
 - `vm_ids`: Libvirt internal IDs for each VM
 - `vm_disks`: Disk file paths for each VM
-- `vm_os_mapping`: OS type assigned to each VM
+- `vm_map`: OS type and size assigned to each VM
 - `vm_image_paths`: Golden image path used for each VM
 
 ## Prerequisites
@@ -222,20 +216,23 @@ virsh net-start nm-bridge
 ## Troubleshooting
 
 ### VMs don't start
+
 - Verify golden images exist at the configured paths
 - Check libvirt storage pool permissions
 - Ensure `nm-bridge` network is active
 
 ### Terraform plan fails
+
 - Run `terraform init` in the prod directory
 - Verify provider connectivity to libvirt daemon
 - Check Terraform state file for conflicts
 
 ### OS mismatch error
-- Verify VM name is correctly spelled in `vm_os_mapping`
-- Check `os_images` paths point to valid files
-- Ensure `default_os` value is one of: `centos`, `rhel`, or `ubuntu`
 
+- Verify VM name is correctly spelled in `vm_map`
+- Check `os_images` paths point to valid files
+- Ensure each `vm_os` value in `vm_map` has a matching key in `os_images`
+- Ensure each `vm_size` is `small`, `medium`, or `large`
 
 ### Resize / partition on ubuntu VM's
 

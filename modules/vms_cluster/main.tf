@@ -1,24 +1,36 @@
 locals {
-  # Determine OS for each VM: use explicit mapping if provided, otherwise use default
-  vm_os = {
-    for vm_name in var.vm_names :
-    vm_name => lookup(var.vm_os_mapping, vm_name, var.default_os)
+  vm_size_profiles = {
+    small = {
+      memory_mb = 2048
+      vcpu      = 2
+      disk_size = 10 * 1024 * 1024 * 1024
+    }
+    medium = {
+      memory_mb = 4096
+      vcpu      = 4
+      disk_size = 20 * 1024 * 1024 * 1024
+    }
+    large = {
+      memory_mb = 8192
+      vcpu      = 8
+      disk_size = 50 * 1024 * 1024 * 1024
+    }
   }
 
   # Get the image path for each VM based on its OS
   vm_image_paths = {
-    for vm_name, os_type in local.vm_os :
-    vm_name => lookup(var.os_images, os_type, var.os_images[var.default_os])
+    for vm_name, vm in var.vm_map :
+    vm_name => var.os_images[vm.vm_os]
   }
 }
 
 resource "libvirt_volume" "vm_disk" {
-  for_each = toset(var.vm_names)
+  for_each = var.vm_map
   name     = "${each.key}-disk.qcow2"
   pool     = "default"
 
   target   = { format = { type = "qcow2" } }
-  capacity = var.disk_size
+  capacity = local.vm_size_profiles[each.value.vm_size].disk_size
 
   create = {
     content = {
@@ -30,11 +42,11 @@ resource "libvirt_volume" "vm_disk" {
 
 resource "libvirt_domain" "machine" {
   type        = "kvm"
-  for_each    = toset(var.vm_names)
+  for_each    = var.vm_map
   name        = each.key
-  memory      = var.memory_mb
+  memory      = local.vm_size_profiles[each.value.vm_size].memory_mb
   memory_unit = "MiB"
-  vcpu        = var.vcpu
+  vcpu        = local.vm_size_profiles[each.value.vm_size].vcpu
 
   running   = true
   autostart = true
@@ -50,8 +62,8 @@ resource "libvirt_domain" "machine" {
   }
 
   cpu = {
-    mode       = "host-passthrough"
-    check      = "none"
+    mode  = "host-passthrough"
+    check = "none"
   }
 
   devices = {
@@ -85,5 +97,3 @@ resource "libvirt_domain" "machine" {
     }]
   }
 }
-
-

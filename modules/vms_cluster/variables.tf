@@ -1,12 +1,14 @@
-variable "vm_names" {
-  description = "List of VM names to create (e.g., vm01, vm02)"
-  type        = list(string)
-}
+variable "vm_map" {
+  description = "Map of VM names to their OS type and size"
+  type = map(object({
+    vm_os   = string
+    vm_size = string
+  }))
 
-variable "vm_os_mapping" {
-  description = "Map of VM names to their OS types (centos, rhel, ubuntu)"
-  type        = map(string)
-  default     = {}
+  validation {
+    condition     = alltrue([for vm in values(var.vm_map) : contains(["small", "medium", "large"], vm.vm_size)])
+    error_message = "Each vm_size must be one of: small, medium, or large."
+  }
 }
 
 variable "os_images" {
@@ -19,24 +21,6 @@ variable "os_images" {
   }
 }
 
-variable "default_os" {
-  description = "Default OS type if not specified for a VM (centos, rhel, ubuntu)"
-  type        = string
-  default     = "ubuntu"
-}
-
-variable "memory_mb" {
-  description = "RAM in MB"
-  type        = number
-  default     = 2048
-}
-
-variable "vcpu" {
-  description = "Number of vCPUs"
-  type        = number
-  default     = 2
-}
-
 variable "base_image_path" {
   description = "Path to the backing_store qcow2 image (deprecated - use os_images instead)"
   type        = string
@@ -47,10 +31,4 @@ variable "network_name" {
   description = "Libvirt network to attach to"
   type        = string
   default     = "nm-bridge"
-}
-
-variable "disk_size" {
-  description = "Disk size in bytes (10GB = 10737418240)"
-  type        = number
-  default     = 10737418240
 }
