@@ -3,17 +3,17 @@ locals {
     small = {
       memory_mb = 2048
       vcpu      = 2
-      disk_size = 10 * 1024 * 1024 * 1024
+      disk_size = 20 * 1024 * 1024 * 1024
     }
     medium = {
       memory_mb = 4096
       vcpu      = 4
-      disk_size = 20 * 1024 * 1024 * 1024
+      disk_size = 40 * 1024 * 1024 * 1024
     }
     large = {
       memory_mb = 8192
       vcpu      = 8
-      disk_size = 50 * 1024 * 1024 * 1024
+      disk_size = 60 * 1024 * 1024 * 1024
     }
   }
 
@@ -27,16 +27,23 @@ locals {
 resource "libvirt_volume" "vm_disk" {
   for_each = var.vm_map
   name     = "${each.key}-disk.qcow2"
-  pool     = "default"
+  pool     = "pool"
 
   target   = { format = { type = "qcow2" } }
   capacity = local.vm_size_profiles[each.value.vm_size].disk_size
 
-  create = {
-    content = {
-      url = local.vm_image_paths[each.key]
+  backing_store = {
+    path   = "resolute-server-cloudimg-amd64.img"
+    format = {
+      type = "qcow2"    
     }
   }
+
+  # create = {
+  #   content = {
+  #     url = local.vm_image_paths[each.key]
+  #   }
+  # }
 }
 
 
@@ -67,6 +74,19 @@ resource "libvirt_domain" "machine" {
   }
 
   devices = {
+    # Modern syntax to create the QEMU Guest Agent channel interface
+    channels = [
+      {
+        source = {
+          unix = {}
+        }
+        target = {
+          virt_io = {
+            name = "org.qemu.guest_agent.0"
+          }
+        }
+      }
+    ]
     disks = [{
       driver = {
         type = "qcow2"

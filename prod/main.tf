@@ -3,13 +3,13 @@ module "vms_cluster" {
 
   # Each VM is configured with its OS and resource size.
 
-  vm_map = {}
+ vm_map = {}
 
-  # vm_map = {
-  #   "dev-web-01" = {
-  #     vm_os   = "rhel"
-  #     vm_size = "small"
-  #   }
+  # vm_map = { 
+  #   "dev-master-01" = { vm_os   = "ubuntu",  vm_size = "medium" } 
+  #   "dev-worker-01" = { vm_os   = "ubuntu",  vm_size = "medium" } 
+  #   "dev-worker-02" = { vm_os   = "ubuntu",  vm_size = "medium" } 
+  #   "dev-worker-03" = { vm_os   = "ubuntu",  vm_size = "medium" } 
   # }
 
   # Override default OS path (optional)
