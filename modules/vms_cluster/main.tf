@@ -27,7 +27,7 @@ locals {
 resource "libvirt_volume" "vm_disk" {
   for_each = var.vm_map
   name     = "${each.key}-disk.qcow2"
-  pool     = "pool"
+  pool     = "default"
 
   target   = { format = { type = "qcow2" } }
   capacity = local.vm_size_profiles[each.value.vm_size].disk_size
